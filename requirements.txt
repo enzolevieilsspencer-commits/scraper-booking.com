@@ -1,0 +1,24 @@
+# Core dependencies
+playwright==1.48.0
+beautifulsoup4==4.12.3
+lxml==5.1.0
+
+# Supabase client (>=2.10 pour compatibilité httpx/gotrue, évite erreur proxy)
+supabase>=2.10.0,<3
+
+# Web server (pour Scraper 1 API)
+fastapi==0.109.0
+uvicorn==0.27.0
+pydantic==2.5.3
+
+# Scheduling
+schedule==1.2.1
+APScheduler==3.10.4
+
+# Utilities
+python-dotenv==1.0.1
+python-dateutil==2.8.2
+requests==2.31.0
+
+# Stealth mode
+playwright-stealth==1.0.6
