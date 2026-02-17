@@ -40,8 +40,8 @@ cp .env.example .env
 Éditer le fichier `.env` :
 
 ```env
-SUPABASE_URL=https://drkfyyyeebvjdzdaiyxf.supabase.co
-SUPABASE_SERVICE_KEY=eyJhbGc...
+SUPABASE_URL=
+SUPABASE_SERVICE_KEY=
 ENVIRONMENT=development
 ```
 
