@@ -89,13 +89,15 @@ class SupabaseClient:
             return False
     
     def create_rate_snapshots_batch(self, snapshots: List[Dict[str, Any]]) -> int:
-        """Crée plusieurs snapshots en batch"""
+        """Crée plusieurs snapshots en batch, triés par dateCheckin (J+1 → J+30)."""
         try:
-            for snapshot in snapshots:
+            # Ordre garanti : J+1, J+2, ..., J+30
+            sorted_snapshots = sorted(snapshots, key=lambda s: s.get("dateCheckin", ""))
+            for snapshot in sorted_snapshots:
                 snapshot["id"] = str(uuid.uuid4())
                 snapshot["scrapedAt"] = datetime.now().isoformat()
-            
-            response = self.client.table("rate_snapshots").insert(snapshots).execute()
+
+            response = self.client.table("rate_snapshots").insert(sorted_snapshots).execute()
             count = len(response.data) if response.data else 0
             print(f"✅ {count} snapshots créés")
             return count

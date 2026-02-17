@@ -89,6 +89,53 @@ def close_browser(browser: Browser):
         print(f"⚠️ Erreur fermeture navigateur: {e}")
 
 
+def create_stealth_browser_full():
+    """
+    Crée un navigateur Playwright en mode stealth et retourne aussi playwright
+    pour permettre close_browser_full() (utilisé par les stratégies multi-hôtels).
+    Returns: (playwright, browser, context, page)
+    """
+    playwright = sync_playwright().start()
+    browser = playwright.chromium.launch(
+        headless=HEADLESS_MODE,
+        args=[
+            '--disable-blink-features=AutomationControlled',
+            '--disable-dev-shm-usage',
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-web-security',
+            '--disable-features=IsolateOrigins,site-per-process',
+        ]
+    )
+    context = browser.new_context(
+        user_agent=get_random_user_agent(),
+        viewport={'width': 1920, 'height': 1080},
+        locale='fr-FR',
+        timezone_id='Europe/Paris',
+        extra_http_headers={'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7'},
+    )
+    context.add_init_script("""
+        Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+        Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
+        Object.defineProperty(navigator, 'languages', { get: () => ['fr-FR', 'fr', 'en-US', 'en'] });
+        window.chrome = { runtime: {} };
+        Object.defineProperty(navigator, 'permissions', { get: () => ({ query: () => Promise.resolve({ state: 'granted' }) }) });
+    """)
+    page = context.new_page()
+    print(f"✅ Navigateur stealth créé (headless={HEADLESS_MODE})")
+    return playwright, browser, context, page
+
+
+def close_browser_full(playwright, browser: Browser):
+    """Ferme le navigateur et arrête Playwright (pour les stratégies multi-hôtels)."""
+    try:
+        browser.close()
+        playwright.stop()
+        print("✅ Navigateur fermé")
+    except Exception as e:
+        print(f"⚠️ Erreur fermeture navigateur: {e}")
+
+
 def random_delay(min_seconds: int = 2, max_seconds: int = 5):
     """Attend un délai aléatoire (simulation comportement humain)"""
     import time

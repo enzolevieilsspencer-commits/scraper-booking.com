@@ -12,13 +12,21 @@ from scrapers.price_scraper import scrape_multiple_hotels
 from database.supabase_client import supabase_client
 
 
-def run_price_scraping(session_number: int = None, hotel_limit: int = None) -> Dict[str, Any]:
+def run_price_scraping(
+    session_number: int = None,
+    hotel_limit: int = None,
+    max_dates_per_hotel: int = None,
+    j_plus: int = None,
+    strategy: int = 1,
+) -> Dict[str, Any]:
     """
-    Exécute le scraping des prix pour les hôtels actifs
+    Exécute le scraping des prix pour les hôtels actifs.
     
     Args:
         session_number: 1 ou 2 (pour diviser en 2 sessions) - None = tous
         hotel_limit: Limite le nombre d'hôtels (pour tests)
+        max_dates_per_hotel: Limite le nombre de dates par hôtel. None = 30.
+        j_plus: Si fourni, ne scrape que le prix à J+N (ex: 30 = J+30, ~1 min/hôtel).
         
     Returns:
         Statistiques d'exécution
@@ -71,6 +79,10 @@ def run_price_scraping(session_number: int = None, hotel_limit: int = None) -> D
         if hotel_limit:
             hotels_to_scrape = hotels_to_scrape[:hotel_limit]
             print(f"🧪 Mode test: Limité à {hotel_limit} hôtel(s)")
+        if max_dates_per_hotel:
+            print(f"🧪 Mode test: {max_dates_per_hotel} date(s) par hôtel (au lieu de 30)")
+        if j_plus is not None:
+            print(f"⚡ Mode J+{j_plus} : uniquement le prix à J+{j_plus} (~1 min/hôtel)")
         
         # Afficher les hôtels à scraper
         print("\n🏨 Hôtels à scraper:")
@@ -78,7 +90,13 @@ def run_price_scraping(session_number: int = None, hotel_limit: int = None) -> D
             print(f"  {i}. {hotel['name']}")
         
         # Lancer le scraping
-        stats, snapshots = scrape_multiple_hotels(hotels_to_scrape)
+        date_offsets = [j_plus] if j_plus is not None else None
+        stats, snapshots = scrape_multiple_hotels(
+            hotels_to_scrape,
+            max_dates_per_hotel=max_dates_per_hotel,
+            date_offsets=date_offsets,
+            strategy=strategy,
+        )
         
         # Enregistrer les snapshots dans Supabase
         if snapshots:
@@ -148,19 +166,63 @@ if __name__ == "__main__":
     parser.add_argument(
         "--test",
         action="store_true",
-        help="Mode test (1 seul hôtel)"
+        help="Mode test (1 seul hôtel, 3 dates)"
+    )
+    parser.add_argument(
+        "--dates",
+        type=int,
+        metavar="N",
+        help="Nombre de dates à scraper par hôtel (défaut: 30). Ex: 3 pour test rapide.",
+    )
+    parser.add_argument(
+        "--j-plus",
+        type=int,
+        metavar="N",
+        dest="j_plus",
+        help="Scraper uniquement le prix à J+N (ex: 30 = J+30, ~1 min par hôtel).",
+    )
+    parser.add_argument(
+        "--strategy",
+        type=int,
+        choices=[1, 2, 3],
+        default=1,
+        help="Stratégie multi-hôtels: 1=1 nav/hôtel (défaut), 2=nav partagé, 3=parallèle.",
+    )
+    parser.add_argument(
+        "--url",
+        type=str,
+        help="Tester avec une URL Booking précise (ex: https://www.booking.com/hotel/fr/xxx.html)",
     )
     
     args = parser.parse_args()
     
-    # Mode test
+    # Mode test avec URL fournie
+    if args.url:
+        max_dates = args.dates if args.dates else 30
+        print(f"🧪 MODE TEST avec URL: {args.url[:60]}... ({max_dates} dates)")
+        from scrapers.price_scraper import scrape_hotel_prices
+        test_hotel = {"id": "test-url", "name": "Hôtel (URL)", "url": args.url}
+        snapshots = scrape_hotel_prices(test_hotel, max_dates=max_dates)
+        print(f"\n📊 Résultat: {len(snapshots)} snapshots")
+        for s in snapshots[:10]:
+            print(f"  {s['dateCheckin']}: {s['price']}€ (dispo: {s['available']})")
+        sys.exit(0 if snapshots else 1)
+    
+    # Mode test rapide (1 hôtel, 3 dates)
     if args.test:
-        print("🧪 MODE TEST")
-        result = run_price_scraping(session_number=None, hotel_limit=1)
+        print("🧪 MODE TEST (1 hôtel, 3 dates)")
+        result = run_price_scraping(
+            session_number=None,
+            hotel_limit=1,
+            max_dates_per_hotel=3,
+        )
     else:
         result = run_price_scraping(
             session_number=args.session,
-            hotel_limit=args.limit
+            hotel_limit=args.limit,
+            max_dates_per_hotel=args.dates,
+            j_plus=args.j_plus,
+            strategy=args.strategy,
         )
     
     # Exit code selon le résultat

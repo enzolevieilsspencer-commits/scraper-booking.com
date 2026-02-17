@@ -86,6 +86,49 @@ def test_scraper_info():
         return False
 
 
+def test_scraper_price():
+    """Test le scraper de prix (1 hôtel, 3 dates)"""
+    print("🧪 Test 3b: Scraper prix (calendrier GraphQL)...")
+
+    choice = input("  Lancer le test scraper prix ? (o/n, défaut: n): ").strip().lower() or "n"
+    if choice != "o":
+        print("  ⏭️ Test skippé\n")
+        return True
+
+    try:
+        from src.scrapers.price_scraper import scrape_hotel_prices
+        from src.database.supabase_client import supabase_client
+
+        hotels = supabase_client.get_monitored_hotels()
+        if not hotels:
+            print("  ⚠️ Aucun hôtel en base. Utilisation d'un hôtel de test...")
+            test_hotel = {
+                "id": "test-123",
+                "name": "Hôtel Test",
+                "url": "https://www.booking.com/hotel/fr/chateau-de-roussan.fr.html"
+            }
+        else:
+            test_hotel = hotels[0]
+            print(f"  📡 Test sur: {test_hotel['name']}")
+
+        print("  Les étapes s'affichent ci-dessous:\n")
+        snapshots = scrape_hotel_prices(test_hotel, max_dates=3)
+
+        if snapshots:
+            print(f"\n  ✅ {len(snapshots)} snapshot(s) récupéré(s):")
+            for s in snapshots[:5]:
+                print(f"     • {s['dateCheckin']}: {s['price']}€ (dispo: {s['available']})")
+            print("✅ Scraper prix OK\n")
+            return True
+        else:
+            print("  ❌ Aucun snapshot récupéré\n")
+            return False
+
+    except Exception as e:
+        print(f"  ❌ Erreur: {e}\n")
+        return False
+
+
 def test_config():
     """Test la configuration"""
     print("🧪 Test 4: Configuration...")
@@ -124,7 +167,8 @@ def main():
     results.append(("Imports", test_imports()))
     results.append(("Configuration", test_config()))
     results.append(("Supabase", test_supabase_connection()))
-    results.append(("Scraper", test_scraper_info()))
+    results.append(("Scraper infos", test_scraper_info()))
+    results.append(("Scraper prix", test_scraper_price()))
     
     # Résumé
     print("═" * 50)
