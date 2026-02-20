@@ -209,6 +209,86 @@ async def extract(request: ExtractRequest):
         )
 
 
+# ============ ROUTES PRIX (Scraper 2) ============
+# Back → DB : run_price_scraping écrit dans rate_snapshots via supabase_client
+
+class ScrapePricesRequest(BaseModel):
+    """Body pour POST /scrape-prices"""
+    limit: Optional[int] = None  # Limiter le nombre d'hôtels (ex: 6)
+    dates: Optional[int] = None  # Nombre de dates par hôtel (ex: 30)
+    strategy: Optional[int] = 1  # 1=isolé, 2=partagé, 3=parallèle
+
+
+class ScrapePricesTestRequest(BaseModel):
+    """Body pour POST /scrape-prices/test"""
+    url: str
+    dates: Optional[int] = 3  # Pour test rapide
+
+
+@app.post("/scrape-prices")
+async def scrape_prices(request: ScrapePricesRequest):
+    """
+    Lance le scraping des prix pour tous les hôtels surveillés.
+    Écrit dans Supabase (rate_snapshots, scraper_logs).
+    Body: { "limit": 6, "dates": 30 } (optionnel)
+    Exécuté dans un thread pour éviter "Playwright Sync API inside asyncio loop".
+    """
+    try:
+        from scheduler.run_price_scraper import run_price_scraping
+        print(f"\n💰 Requête /scrape-prices: limit={request.limit}, dates={request.dates}")
+        result = await asyncio.to_thread(
+            run_price_scraping,
+            hotel_limit=request.limit,
+            max_dates_per_hotel=request.dates,
+            strategy=request.strategy,
+        )
+        return {
+            "success": result.get("success", False),
+            "message": result.get("message", ""),
+            "stats": result.get("stats", {}),
+            "snapshots_count": result.get("snapshots_count", 0),
+        }
+    except Exception as e:
+        print(f"❌ Erreur /scrape-prices: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erreur serveur: {str(e)}"
+        )
+
+
+@app.post("/scrape-prices/test")
+async def scrape_prices_test(request: ScrapePricesTestRequest):
+    """
+    Teste le scraping des prix pour une URL sans enregistrer en base.
+    Body: { "url": "https://www.booking.com/hotel/fr/...", "dates": 3 }
+    Exécuté dans un thread pour éviter "Playwright Sync API inside asyncio loop".
+    """
+    try:
+        from scrapers.price_scraper import scrape_hotel_prices
+        print(f"\n🧪 Test /scrape-prices: {request.url[:60]}...")
+        test_hotel = {"id": "test", "name": "Test", "url": request.url}
+        snapshots = await asyncio.to_thread(
+            scrape_hotel_prices,
+            test_hotel,
+            max_dates=request.dates or 3,
+        )
+        return {
+            "success": True,
+            "message": f"{len(snapshots)} snapshots extraits (non enregistrés)",
+            "snapshots": [
+                {"dateCheckin": s["dateCheckin"], "price": s["price"], "available": s["available"]}
+                for s in snapshots[:20]
+            ],
+        }
+    except Exception as e:
+        print(f"❌ Erreur /scrape-prices/test: {e}")
+        return {
+            "success": False,
+            "message": str(e),
+            "snapshots": [],
+        }
+
+
 if __name__ == "__main__":
     import uvicorn
     
@@ -219,11 +299,13 @@ if __name__ == "__main__":
     ╚══════════════════════════════════════════════╝
     
     📌 Endpoints disponibles:
-       GET  /               - Info API
-       GET  /health         - Health check
-       POST /extract        - Extraire infos (Next.js, sans enregistrer)
-       POST /scrape-hotel   - Scraper et enregistrer un hôtel
-       POST /test-scrape    - Tester le scraping sans enregistrer
+       GET  /                 - Info API
+       GET  /health           - Health check
+       POST /extract          - Extraire infos hôtel (Next.js, sans enregistrer)
+       POST /scrape-hotel     - Scraper et enregistrer un hôtel
+       POST /test-scrape      - Tester scraping hôtel sans enregistrer
+       POST /scrape-prices    - Scraper les prix → DB (rate_snapshots)
+       POST /scrape-prices/test - Tester scraping prix sans enregistrer
     
     💡 Exemple curl:
        curl -X POST http://localhost:8000/scrape-hotel \\

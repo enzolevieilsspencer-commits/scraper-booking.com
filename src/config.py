@@ -24,7 +24,7 @@ MIN_DELAY_SECONDS = int(os.getenv("MIN_DELAY_SECONDS", "30"))
 MAX_DELAY_SECONDS = int(os.getenv("MAX_DELAY_SECONDS", "60"))
 # Pause entre chaque hôtel (secondes) — max 10s pour accélérer les tests
 PAUSE_BETWEEN_HOTELS_MIN = float(os.getenv("PAUSE_BETWEEN_HOTELS_MIN", "2"))
-PAUSE_BETWEEN_HOTELS_MAX = float(os.getenv("PAUSE_BETWEEN_HOTELS_MAX", "10"))
+PAUSE_BETWEEN_HOTELS_MAX = float(os.getenv("PAUSE_BETWEEN_HOTELS_MAX", "5"))
 HEADLESS_MODE = os.getenv("HEADLESS_MODE", "true").lower() == "true"
 
 # Session Times (random ranges in hours)

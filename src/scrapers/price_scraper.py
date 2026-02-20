@@ -1,5 +1,5 @@
 """
-Scraper 2 : récupération des prix pour les 30 prochains jours (J+1 → J+30).
+Scraper 2 : récupération des prix pour J (aujourd'hui) + 30 jours (J → J+30).
 
 DÉROULEMENT GÉNÉRAL
 -------------------
@@ -47,13 +47,17 @@ DATE_BUTTON_FALLBACK_SELECTOR = "button:has-text(\"Date d'arrivée\")"
 
 def get_next_30_days(max_dates: Optional[int] = None) -> List[date]:
     """
-    Liste des dates à scraper : J+1, J+2, ..., J+30 (aujourd'hui = J).
-    Si max_dates est fourni (ex. 3), on ne garde que les N premières dates (pour les tests).
+    Liste des dates à scraper : J (jour du scraping) + 30 jours = J, J+1, ..., J+30.
+    Inclut toujours le jour où le scraping a lieu.
+    Si max_dates est fourni (ex. 3 pour test), on garde les N premières dates.
+    Si max_dates=30, on retourne 31 jours (aujourd'hui + 30).
     """
     today = date.today()
-    days = [today + timedelta(days=i) for i in range(1, 31)]
+    days = [today + timedelta(days=i) for i in range(0, 31)]  # J à J+30
     if max_dates is not None and max_dates > 0:
-        days = days[:max_dates]
+        # 30 = aujourd'hui + 30 jours (31 snapshots)
+        n = 31 if max_dates == 30 else min(max_dates, 31)
+        days = days[:n]
     return days
 
 
