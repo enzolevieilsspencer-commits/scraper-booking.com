@@ -5,7 +5,7 @@ Système de scraping automatisé pour surveiller les prix de 6 hôtels à Saint-
 ## 📁 Architecture
 
 - **Scraper 1** : Récupération des infos hôtel (manuel, via API)
-- **Scraper 2** : Surveillance des prix sur 30 jours (automatique, 2x/jour)
+- **Scraper 2** : Surveillance des prix sur 30 jours (automatique, 1x/jour)
 
 ## 🚀 Installation
 
