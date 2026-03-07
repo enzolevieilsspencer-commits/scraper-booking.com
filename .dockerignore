@@ -1,0 +1,27 @@
+# Environnement et cache
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Env local (Railway injecte les variables)
+.env
+.env.local
+
+# Dossiers non nécessaires au runtime
+scraper-booking.com/
+*.md
+!README.md

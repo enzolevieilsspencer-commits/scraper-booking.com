@@ -126,15 +126,28 @@ CREATE TABLE scraper_logs (
 
 ## 🚢 Déploiement sur Railway
 
-1. Créer compte sur [Railway](https://railway.app)
-2. Connecter votre repo GitHub
-3. Ajouter les variables d'environnement
-4. Le service démarre automatiquement
+Le projet utilise un **Dockerfile** avec Playwright + Chromium préinstallé (évite les timeouts de téléchargement).
 
-### Variables d'env à configurer sur Railway :
-- `SUPABASE_URL`
-- `SUPABASE_SERVICE_KEY`
-- `ENVIRONMENT=production`
+### Étapes
+
+1. **Créer un projet** sur [Railway](https://railway.app)
+2. **New Project** → **Deploy from GitHub repo** → sélectionner ce dépôt
+3. **Variables d'environnement** (Settings → Variables) :
+   | Variable | Description |
+   |----------|-------------|
+   | `SUPABASE_URL` | URL du projet Supabase |
+   | `SUPABASE_SERVICE_KEY` | Clé service (secret) |
+   | `ENVIRONMENT` | `production` |
+4. **Déploiement** : Railway détecte le Dockerfile et build automatiquement
+5. **Domaine** : Settings → Networking → Generate Domain (pour exposer l'API)
+
+### Endpoints déployés
+
+- `GET /` — Info API
+- `GET /health` — Health check
+- `POST /extract` — Extraire infos hôtel (Next.js)
+- `POST /scrape-hotel` — Scraper et enregistrer un hôtel
+- `POST /scrape-prices` — Lancer le scraping des prix
 
 ## 🔒 Sécurité
 
